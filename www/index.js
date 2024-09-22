@@ -41,6 +41,60 @@ function create() {
       .setOrigin(0.5)
       .setInteractive();
 
+      const sceltaEmanuele = this.add.text(225, 200, 'Emanuele', { fontSize: '20px', fill: '#fff' })
+      .setOrigin(0.5)
+      .setInteractive()
+      .setVisible(false);
+
+    const sceltaGiulia = this.add.text(225, 250, 'Giulia', { fontSize: '20px', fill: '#fff' })
+      .setOrigin(0.5)
+      .setInteractive()
+      .setVisible(false);
+
+    const backButton = this.add.text(225, 300, 'Indietro', { fontSize: '20px', fill: '#fff' })
+      .setOrigin(0.5)
+      .setInteractive()
+      .setVisible(false);
+
+    // Logica per il tasto "Scegli Personaggio"
+    scegliPersonaggio.on('pointerdown', () => {
+      startText.setVisible(false);
+      scegliPersonaggio.setVisible(false);
+      settings.setVisible(false);
+
+      // Mostra le opzioni di personaggio e il tasto "Indietro"
+      sceltaEmanuele.setVisible(true);
+      sceltaGiulia.setVisible(true);
+      backButton.setVisible(true);
+    });
+
+    // Selezione personaggio Emanuele
+    sceltaEmanuele.on('pointerdown', () => {
+      console.log('Hai scelto Emanuele');
+      // Puoi implementare qui la logica per assegnare Emanuele come personaggio
+      startGame(this); // Inizia il gioco
+    });
+
+    // Selezione personaggio Giulia
+    sceltaGiulia.on('pointerdown', () => {
+      console.log('Hai scelto Giulia');
+      sceltaEmanuele.setVisible(false);
+      sceltaGiulia.setVisible(false);
+      backButton.setVisible(false);
+      startGame(this); // Inizia il gioco
+    });
+
+    // Tasto Indietro per tornare al menu iniziale
+    backButton.on('pointerdown', () => {
+      startText.setVisible(true);
+      scegliPersonaggio.setVisible(true);
+      settings.setVisible(true);
+
+      sceltaEmanuele.setVisible(false);
+      sceltaGiulia.setVisible(false);
+      backButton.setVisible(false);
+    });
+
     startText.on('pointerdown', () => {
       startGame(this);
       startText.setVisible(false);
@@ -124,7 +178,7 @@ function update() {
   if (!gameState.gameStarted) return;
 
   if (gameState.cursors.left.isDown || gameState.isMovingLeft) {
-    gameState.player.setVelocityX(-160);
+    gameState.player.setVelocityY(-160);
   } else if (gameState.cursors.right.isDown || gameState.isMovingRight) {
     gameState.player.setVelocityX(160);
   } else {
