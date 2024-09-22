@@ -14,6 +14,9 @@ const gameState = {
   bugGenEvent: null,
   gameOverText: null,
   restartText: null,
+  background: null, // Aggiunto per il background
+  backgroundVelocity: 1, // Velocità dello sfondo (positiva per movimento a sinistra)
+  isBackgroundMoving: true // Aggiunta per controllare il movimento dello sfondo
 };
 
 function preload() {
@@ -24,24 +27,29 @@ function preload() {
   this.load.image('player', 'assets/codey.png');
   this.load.image('leftButton', 'assets/sinistra.png');
   this.load.image('rightButton', 'assets/destra.png');
+  this.load.image('background', 'assets/sky.jpg');
 }
 
 function create() {
+  gameState.background = this.add.tileSprite(225, 250, 450, 500, 'background'); // Usa tileSprite per il background
+  gameState.background.setScale(1);
+  gameState.background.setOrigin(0.5, 0.5); // Imposta l'origine al centro
+
   // Messaggio di avvio
   if (!gameState.initialMessageShown) {
     const startText = this.add.text(225, 200, 'Clicca per iniziare', { fontSize: '20px', fill: '#fff' })
       .setOrigin(0.5)
       .setInteractive();
 
-      const scegliPersonaggio = this.add.text(225, 250, 'Scegli il personaggio', { fontSize: '20px', fill: '#fff' })
-      .setOrigin(0.5)
-      .setInteractive(); 
-
-      const settings = this.add.text(225, 300, 'Impostazioni', { fontSize: '20px', fill: '#fff' })
+    const scegliPersonaggio = this.add.text(225, 250, 'Scegli il personaggio', { fontSize: '20px', fill: '#fff' })
       .setOrigin(0.5)
       .setInteractive();
 
-      const sceltaEmanuele = this.add.text(225, 200, 'Emanuele', { fontSize: '20px', fill: '#fff' })
+    const settings = this.add.text(225, 300, 'Impostazioni', { fontSize: '20px', fill: '#fff' })
+      .setOrigin(0.5)
+      .setInteractive();
+
+    const sceltaEmanuele = this.add.text(225, 200, 'Emanuele', { fontSize: '20px', fill: '#fff' })
       .setOrigin(0.5)
       .setInteractive()
       .setVisible(false);
@@ -71,7 +79,6 @@ function create() {
     // Selezione personaggio Emanuele
     sceltaEmanuele.on('pointerdown', () => {
       console.log('Hai scelto Emanuele');
-      // Puoi implementare qui la logica per assegnare Emanuele come personaggio
       startGame(this); // Inizia il gioco
     });
 
@@ -105,7 +112,7 @@ function create() {
   }
 
   // Crea il player
-  gameState.player = this.physics.add.sprite(200, 450, 'player').setScale(0.5).setVisible(false); // Riposizionato vicino alla piattaforma
+  gameState.player = this.physics.add.sprite(200, 450, 'player').setScale(0.5).setVisible(false);
   const platforms = this.physics.add.staticGroup();
   platforms.create(225, 510, 'platform');
 
@@ -132,7 +139,10 @@ function create() {
 
   // Collider per game over
   this.physics.add.collider(gameState.player, gameState.bugs, () => {
+    gameState.isBackgroundMoving = false; // Ferma lo sfondo
+
     this.physics.pause();
+    gameState.background.tilePositionX = 0; // Imposta a zero per fermarlo
     gameState.gameOverText = this.add.text(189, 250, 'Game Over', { fontSize: '15px', fill: '#000000' });
     gameState.restartText = this.add.text(152, 270, 'Click to Restart', { fontSize: '15px', fill: '#000000' });
 
@@ -145,9 +155,6 @@ function create() {
       startGame(this);
     });
   });
-
-  // Funzione per generare i bug
-
 
   gameState.bugGenEvent = this.time.addEvent({
     delay: 1500,
@@ -177,8 +184,14 @@ function bugGen() {
 function update() {
   if (!gameState.gameStarted) return;
 
+  // Muovi lo sfondo da destra a sinistra solo se è attivo
+  if (gameState.isBackgroundMoving) {
+    gameState.background.tilePositionX += gameState.backgroundVelocity;
+  }
+
+  // Controlla i movimenti del player
   if (gameState.cursors.left.isDown || gameState.isMovingLeft) {
-    gameState.player.setVelocityY(-160);
+    gameState.player.setVelocityX(-160);
   } else if (gameState.cursors.right.isDown || gameState.isMovingRight) {
     gameState.player.setVelocityX(160);
   } else {
@@ -195,10 +208,12 @@ function update() {
 }
 
 function startGame(scene) {
+  gameState.background.tilePositionX += gameState.backgroundVelocity;
   gameState.gameStarted = true;
   gameState.player.setVisible(true);
   gameState.leftButton.setVisible(true);
   gameState.rightButton.setVisible(true);
+  gameState.isBackgroundMoving = true; // Riattiva il movimento dello sfondo
 
   if (gameState.gameOverText) {
     gameState.gameOverText.destroy(); // Rimuove il testo "Game Over"
@@ -211,14 +226,16 @@ function startGame(scene) {
 }
 
 function resetGameState(scene) {
+  gameState.background.tilePositionX += gameState.backgroundVelocity;
   gameState.score = 0;
   gameState.isMovingLeft = false;
   gameState.isMovingRight = false;
   gameState.bugsPassed = [];
   gameState.gameStarted = false;
+  gameState.isBackgroundMoving = true; // Riattiva il movimento dello sfondo
 
   // Riposiziona il player alla piattaforma
-  gameState.player.setPosition(200, 450).setVisible(false); 
+  gameState.player.setPosition(200, 450).setVisible(false);
 
   gameState.scoreText.setText('Score: 0');
   gameState.bugs.clear(true, true);
