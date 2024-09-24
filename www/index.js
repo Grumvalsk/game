@@ -16,7 +16,7 @@ const gameState = {
   background: null,
   backgroundVelocity: 1,
   isBackgroundMoving: true,
-  selectedCharacter: 'player' 
+  selectedCharacter: 'player' // Inizialmente il personaggio è impostato su 'player'
 };
 
 function preload() {
@@ -26,46 +26,36 @@ function preload() {
   this.load.image('platform', 'assets/platform.png');
   this.load.image('player', 'assets/codey.png');
   this.load.image('background', 'assets/sky.jpg');
-  this.load.image('leftButton', 'assets/sinistra.png');
+  this.load.image('leftButton', 'assets/button.png');
 }
 
 function create() {
-  gameState.background = this.add.tileSprite(225, 250, 450, 500, 'background');
+  gameState.background = this.add.tileSprite(225, 250, 450, 500, 'background').setOrigin(0.5, 0.5);
   gameState.background.setScale(1);
-  gameState.background.setOrigin(0.5, 0.5);
 
-  if (!gameState.initialMessageShown) {
-    // Testo iniziale "Inizia a giocare"
-    const startText = this.add.text(225, 250, 'Inizia a giocare', { fontSize: '20px', fill: '#fff' })
-      .setOrigin(0.5)
-      .setInteractive();
+  // Messaggio iniziale
+  const startText = this.add.text(225, 250, 'Inizia a giocare', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
+  const scegliPersonaggio = this.add.text(225, 300, 'Scegli il personaggio', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
+  const settings = this.add.text(225, 350, 'Settings', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
 
-      const scegliPersonaggio = this.add.text(225, 300, 'Scegli il personaggio', { fontSize: '20px', fill: '#fff' })
-      .setOrigin(0.5)
-      .setInteractive();
+  // Quando si clicca su "Scegli il personaggio"
+  scegliPersonaggio.setInteractive().on('pointerdown', () => {
+    startText.setVisible(false);
+    scegliPersonaggio.setVisible(false);
+    settings.setVisible(false);
 
-      const settings = this.add.text(225, 350, 'Settings', { fontSize: '20px', fill: '#fff' })
-      .setOrigin(0.5)
-      .setInteractive();
+    // Mostra la selezione del personaggio
+    showCharacterSelection(this);
+  });
 
-    // Quando si clicca su "Inizia a giocare"
-    scegliPersonaggio.on('pointerdown', () => {
-      startText.setVisible(false);
-      scegliPersonaggio.setVisible(false);
-      settings.setVisible(false);
-
-      // Mostra la selezione del personaggio
-      showCharacterSelection(this);
-    });
-
-    gameState.initialMessageShown = true;
-  }
-
+  // Creazione del giocatore
   gameState.player = this.physics.add.sprite(200, 450, gameState.selectedCharacter).setScale(0.5).setVisible(false);
+  gameState.player.setCollideWorldBounds(true);
+  gameState.player.setBounce(0.2); // Rimbalzo per il salto
+
   const platforms = this.physics.add.staticGroup();
   platforms.create(225, 510, 'platform');
 
-  gameState.player.setCollideWorldBounds(true);
   this.physics.add.collider(gameState.player, platforms);
 
   // Cursors
@@ -73,13 +63,13 @@ function create() {
 
   // Pulsanti per dispositivi mobili
   gameState.leftButton = this.add.sprite(50, 450, 'leftButton').setInteractive().setAlpha(0.5).setScale(0.1);
-  gameState.leftButton.setVisible(false); // Nascondi pulsante all'inizio
+  gameState.leftButton.setVisible(false); // Nascondi il pulsante all'inizio
 
   // Gestione eventi pulsanti
   gameState.leftButton.on('pointerdown', () => { gameState.isMovingLeft = true; });
   gameState.leftButton.on('pointerup', () => { gameState.isMovingLeft = false; });
 
-  // Crea il gruppo dei bug
+  // Creazione del gruppo dei bug
   gameState.bugs = this.physics.add.group({
     allowGravity: false,
   });
@@ -93,7 +83,7 @@ function create() {
     gameState.gameOverText = this.add.text(189, 250, 'Game Over', { fontSize: '15px', fill: '#000000' });
     gameState.restartText = this.add.text(152, 270, 'Click to Restart', { fontSize: '15px', fill: '#000000' });
 
-    // Mostra i pulsanti
+    // Mostra il pulsante
     gameState.leftButton.setVisible(true);
 
     gameState.restartText.setInteractive().on('pointerdown', () => {
@@ -113,10 +103,7 @@ function create() {
 }
 
 function showCharacterSelection(scene) {
-  const selectionText = scene.add.text(225, 200, 'Scegli il tuo personaggio', { fontSize: '20px', fill: '#fff' })
-    .setOrigin(0.5);
-
-  // Carosello di selezione personaggi
+  const selectionText = scene.add.text(225, 200, 'Scegli il tuo personaggio', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
   const characters = ['player', 'bug1', 'bug2', 'bug3'];
   let currentCharacterIndex = 0;
 
@@ -181,11 +168,13 @@ function update() {
 
   // Controlla i movimenti del player
   if (gameState.cursors.left.isDown || gameState.isMovingLeft) {
-    gameState.player.setVelocityY(-160);
+    gameState.player.setVelocityY(-160); // Movimento a sinistra
+    gameState.player.setFlipX(true); // Girare il personaggio a sinistra
   } else if (gameState.cursors.right.isDown || gameState.isMovingRight) {
-    gameState.player.setVelocityX(160);
+    gameState.player.setVelocityX(160); // Movimento a destra
+    gameState.player.setFlipX(false); // Girare il personaggio a destra
   } else {
-    gameState.player.setVelocityX(0);
+    gameState.player.setVelocityX(0); // Fermare il personaggio
   }
 
   gameState.bugsPassed.forEach((bug, index) => {
@@ -204,6 +193,10 @@ function startGame(scene) {
   gameState.leftButton.setVisible(true);
   gameState.isBackgroundMoving = true;
 
+  // Mostra il personaggio selezionato
+  scene.add.existing(gameState.player);
+  gameState.player.setTexture(gameState.selectedCharacter);
+
   if (gameState.gameOverText) {
     gameState.gameOverText.destroy();
   }
@@ -215,7 +208,6 @@ function startGame(scene) {
 }
 
 function resetGameState(scene) {
-  gameState.background.tilePositionX += gameState.backgroundVelocity;
   gameState.score = 0;
   gameState.isMovingLeft = false;
   gameState.isMovingRight = false;
@@ -224,38 +216,33 @@ function resetGameState(scene) {
   gameState.isBackgroundMoving = true;
 
   gameState.player.setPosition(200, 450).setVisible(false);
+  gameState.player.setTexture(gameState.selectedCharacter); // Ripristina il personaggio selezionato
 
   gameState.scoreText.setText('Score: 0');
-  gameState.bugs.clear(true, true);
-
-  if (gameState.bugGenEvent) {
-    gameState.bugGenEvent.remove();
-  }
-
-  gameState.bugGenEvent = scene.time.addEvent({
-    delay: 1500,
-    callback: () => bugGen.call(scene),
-    loop: true
-  });
+  gameState.bugs.clear(true, true); // Rimuovi tutti i bug
+  gameState.background.tilePositionX = 0; // Ripristina la posizione dello sfondo
 }
 
 const config = {
   type: Phaser.AUTO,
   width: 450,
   height: 500,
-  backgroundColor: "b9eaff",
   physics: {
-    default: "arcade",
+    default: 'arcade',
     arcade: {
       gravity: { y: 200 },
-      enableBody: true,
+      debug: false
     }
   },
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.FIT, // Adatta il gioco alle dimensioni del contenitore
+    autoCenter: Phaser.Scale.CENTER_BOTH // Centra il contenuto
   },
-  scene: { preload, create, update }
+  scene: {
+    preload: preload,
+    create: create,
+    update: update
+  }
 };
 
 const game = new Phaser.Game(config);
