@@ -10,6 +10,7 @@ const gameState = {
   button: null,
   scoreText: null,
   bugs: null,
+  isOnPlatform: false, // Variabile per rilevare se il personaggio è sulla pedana
   bugGenEvent: null,
   gameOverText: null,
   restartText: null,
@@ -24,11 +25,11 @@ function preload() {
   this.load.image('bug1', 'assets/bug_1.png');
   this.load.image('bug2', 'assets/bug_2.png');
   this.load.image('bug3', 'assets/bug_3.png');
-  this.load.image('pitta', 'assets/pitta.jpg')
+  this.load.image('pitta', 'assets/pitta.jpg');
   this.load.image('platform', 'assets/platform.png');
   this.load.image('giulia', 'assets/personaggio.PNG');
   this.load.image('background', 'assets/sky.jpg');
-  this.load.image('button', 'assets/button.png');
+
 
   // Caricamento del file audio
   this.load.audio('backgroundMusic', 'assets/suoni/love-anthem-no-1-128-ytshorts.savetube.me.mp3');
@@ -59,10 +60,9 @@ function create() {
     showCharacterSelection(this);
   });
 
-  // Creazione del giocatore
-  gameState.player = this.physics.add.sprite(200, 0, gameState.selectedCharacter).setScale(0.05).setVisible(false);
+  // Creazione del giocatore (giocatore inizialmente nascosto fino alla selezione del personaggio)
+  gameState.player = this.physics.add.sprite(200, 0, gameState.selectedCharacter).setOrigin(0.5, 1).setScale(0.5).setVisible(false);
   gameState.player.setCollideWorldBounds(true);
-  // gameState.player.setBounce(0.9); // Rimbalzo per il salto
 
   const platforms = this.physics.add.staticGroup();
   platforms.create(225, 480, 'platform');
@@ -71,10 +71,11 @@ function create() {
   this.physics.add.collider(gameState.player, platforms, () => {
     if (gameState.player.body.touching.down) {
       gameState.player.setVelocityY(0); // Ferma il movimento verticale
+      gameState.isOnPlatform = true; // Imposta la variabile su true quando il personaggio è sulla piattaforma
+    } else {
+      gameState.isOnPlatform = false; // Imposta su false se non è sulla piattaforma
     }
   });
-
-  this.physics.add.collider(gameState.player, platforms);
 
   // Cursors
   gameState.cursors = this.input.keyboard.createCursorKeys();
@@ -86,6 +87,14 @@ function create() {
   // Gestione eventi pulsanti
   gameState.button.on('pointerdown', () => { gameState.jump = true; });
   gameState.button.on('pointerup', () => { gameState.jump = false; });
+
+  // Creazione del pulsante rosso
+  const redButton = this.add.rectangle(30, 470, 80, 40, 0xff0000).setOrigin(0.5, 0.5).setInteractive();
+  redButton.setStrokeStyle(2, 0x000000); // Bordo nero per il pulsante
+
+  // Gestione evento del pulsante rosso
+  redButton.on('pointerdown', () => { gameState.jump = true; });
+  redButton.on('pointerup', () => { gameState.jump = false; });
 
   // Creazione del gruppo dei bug
   gameState.bugs = this.physics.add.group({
@@ -125,11 +134,11 @@ function create() {
 
 function showCharacterSelection(scene) {
   const selectionText = scene.add.text(225, 200, 'Scegli il tuo personaggio', { fontSize: '20px', fill: '#fff' }).setOrigin(0.5);
-  const characters = ['giulia', 'pitta'];
+  const characters = ['bug2', 'bug1', 'bug3'];
   let currentCharacterIndex = 0;
 
   // Sprite del personaggio selezionato
-  const characterSprite = scene.add.sprite(225, 300, characters[currentCharacterIndex]).setScale(0.5).setInteractive();
+  const characterSprite = scene.add.sprite(225, 300, characters[currentCharacterIndex]).setScale(.6).setInteractive();
 
   // Pulsanti Next e Previous per il carosello
   const nextButton = scene.add.text(325, 400, 'Next', { fontSize: '20px', fill: '#fff' }).setInteractive();
@@ -153,7 +162,6 @@ function showCharacterSelection(scene) {
 
   // Inizio del gioco cliccando sul personaggio selezionato
   characterSprite.on('pointerdown', () => {
-    console.log('Personaggio selezionato:', characters[currentCharacterIndex]);
     gameState.selectedCharacter = characters[currentCharacterIndex]; 
     selectionText.setVisible(false);
     characterSprite.setVisible(false);
@@ -189,14 +197,16 @@ function update() {
 
   // Controlla i movimenti del player
   if (gameState.cursors.space.isDown || gameState.jump) {
-    gameState.player.setVelocityY(-160); // Movimento a sinistra
-    gameState.player.setFlipX(true); // Girare il personaggio a sinistra
+    if (gameState.isOnPlatform) { // Controlla se il personaggio è sulla pedana prima di saltare
+      gameState.player.setVelocityY(-400); // Salto del personaggio
+      gameState.isOnPlatform = false; // Imposta su false quando il giocatore salta
+    }
   } 
 
   gameState.bugsPassed.forEach((bug, index) => {
     if (bug.x < gameState.player.x) {
       gameState.score += 10;
-      gameState.scoreText.setText(`Score: ${gameState.score}`);
+      gameState.scoreText.setText(`Score: ${gameState.score}`); // Aggiorna il punteggio visivamente
       gameState.bugsPassed.splice(index, 1);
     }
   });
@@ -208,7 +218,8 @@ function startGame(scene) {
   gameState.player.setVisible(true);
   
   // Posiziona il giocatore sopra la piattaforma
-  gameState.player.setPosition(200, 455); // Assicurati che 455 sia la giusta Y della piattaforma
+  const platformY = 430; // Assicurati che 455 sia la giusta Y della piattaforma
+  gameState.player.setPosition(200, platformY); // Partenza iniziale sopra la piattaforma
   gameState.player.setVelocityY(0); // Ferma il movimento verticale iniziale
 
   gameState.button.setVisible(true);
@@ -231,24 +242,20 @@ function startGame(scene) {
   scene.physics.resume();
 }
 
-
-
 function resetGameState(scene) {
-  gameState.score = 0;
-  gameState.jump = false;
-  gameState.isMovingRight = false;
+  gameState.score = 0; // Reset del punteggio
   gameState.bugsPassed = [];
-  gameState.gameStarted = false;
   gameState.isBackgroundMoving = true;
+  gameState.player.setVelocity(0, 0);
+  gameState.player.setPosition(200, 455); // Riporta il personaggio sulla piattaforma
+  gameState.gameStarted = false; // Imposta gameStarted a false per indicare che il gioco non è in corso
+  gameState.bugs.clear(true, true);
+  
+  // Aggiorna il punteggio visualmente
+  gameState.scoreText.setText(`Score: ${gameState.score}`); 
 
-  gameState.player.setPosition(200, 455).setVisible(false);
-  gameState.player.setTexture(gameState.selectedCharacter); // Ripristina il personaggio selezionato
-
-  gameState.scoreText.setText('Score: 0');
-  gameState.bugs.clear(true, true); // Rimuovi tutti i bug
-  gameState.background.tilePositionX = 0; // Ripristina la posizione dello sfondo
+  gameState.backgroundMusic.stop();
 }
-
 
 const config = {
   type: Phaser.AUTO,
@@ -257,7 +264,7 @@ const config = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 200 },
+      gravity: { y: 900 },
       debug: false
     }
   },
